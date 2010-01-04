@@ -1,0 +1,8 @@
+- add command line options to accept username, password, database and
+  table as command line
+
+- add subs to generate the values for DATE and TIMESTAMP data types
+
+- no blob supported 
+
+- no enums, set, BOOL, BIT, FLOAT, DOUBLE, DECIMAL support added yet (low priority)

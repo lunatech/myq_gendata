@@ -1,0 +1,90 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Data::Random qw(:all);
+
+use DBIx::DWIW;
+
+sub get_data_for_field;
+
+my ($database,$table,$outfile,$count) = ("test","names","/tmp/ins.sql",20);
+my $db = DBIx::DWIW->Connect(DB => 'test',
+			     User => 'root',
+			     Host => undef,
+			     Pass => ""
+			    );
+my $gendata_dispatch_table = {
+			      "int" => \&generate_int,
+			      "tinyint"  => \&generate_int,
+			      "varchar"  => \&generate_varchar,
+			      "char"  => \&generate_varchar,
+			      "datetime" =>\&generate_datetime
+			     };
+  
+my @records = $db->Hashes("desc $table");
+my $insert_sql = "INSERT IGNORE INTO $table VALUES";    
+for (my $i=0;$i<$count;$i++)
+  {
+    $insert_sql .= "(";
+    foreach my $rec (@records) {
+      my $val = get_data_for_field($rec->{Type});
+      $insert_sql .= "$val,";
+    }
+    $insert_sql =~ s/,$//g;
+    $insert_sql .= "),";
+  }
+
+$insert_sql =~ s/,$//g;
+open FH,">",$outfile;
+print FH $insert_sql;
+
+sub get_data_for_field
+  {
+  my $db_type = shift;
+  my ($type,$type_args);
+  
+  if ($db_type =~ m/(\w+)(\((.*)\))?/) {
+  $type = $1;
+  $type_args = $3 if (defined($3)) ;
+  if (exists $gendata_dispatch_table->{$type}) { 
+    my $x = $gendata_dispatch_table->{$type}->($type,$type_args);
+    return $x;
+  }
+  else {
+    die "Don't know how to generate data for $type"
+  }
+}
+  else {
+    print "cannot parse $db_type";
+  }
+}
+
+  
+  sub generate_int
+    {
+      my $type = shift;
+      my $n_digits = shift || 11;
+      my $max = 10 ** $n_digits - 1 ; # $max is the maximum number
+                                      # $n_digits long
+      print "generating random number less than $max for $n_digits\n";
+      return int(rand($max));
+    }
+
+sub generate_varchar
+      {
+	my $type = shift;
+	my $n_char = shift || 30;
+	my @ranchar = rand_chars(set => "alphanumeric",size =>$n_char);
+	my $val = join "",@ranchar ;
+	my $x = '"'.$val.'"';
+	return $x;
+      }
+
+sub generate_datetime
+	{
+	  my $type = shift;
+	  my $randdatetime = rand_datetime(max => "now", min => '1978-9-21 00:00:00');
+	  my $x = '"'. $randdatetime .'"';
+	  return $x;
+	}
