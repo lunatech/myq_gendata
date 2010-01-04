@@ -1,0 +1,5 @@
+Have you ever felt the need to point a script at an existing mysql
+table and just get it filled with random data?  This script was based
+on my need to do something like that.
+
+
