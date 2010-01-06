@@ -6,3 +6,5 @@
 - no blob supported 
 
 - no enums, set, BOOL, BIT, FLOAT, DOUBLE, DECIMAL support added yet (low priority)
+
+
