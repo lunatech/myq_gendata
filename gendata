@@ -8,8 +8,8 @@ use DBIx::DWIW;
 
 sub get_data_for_field;
 
-my ($database,$table,$outfile,$count) = ("test","names","/tmp/ins.sql",20);
-my $db = DBIx::DWIW->Connect(DB => 'test',
+my ($database,$table,$outfile,$count) = ("test","jos_plugins","/tmp/ins.sql",3);
+my $db = DBIx::DWIW->Connect(DB => $database,
 			     User => 'root',
 			     Host => undef,
 			     Pass => ""
@@ -19,7 +19,9 @@ my $gendata_dispatch_table = {
 			      "tinyint"  => \&generate_int,
 			      "varchar"  => \&generate_varchar,
 			      "char"  => \&generate_varchar,
-			      "datetime" =>\&generate_datetime
+			      "datetime" =>\&generate_datetime,
+			      "date"  =>\&generate_datetime,
+			      "timestamp" => \&generate_datetime
 			     };
   
 my @records = $db->Hashes("desc $table");
@@ -32,7 +34,7 @@ for (my $i=0;$i<$count;$i++)
       $insert_sql .= "$val,";
     }
     $insert_sql =~ s/,$//g;
-    $insert_sql .= "),";
+    $insert_sql .= "),\n";
   }
 
 $insert_sql =~ s/,$//g;
@@ -64,27 +66,53 @@ sub get_data_for_field
   sub generate_int
     {
       my $type = shift;
-      my $n_digits = shift || 11;
+      my $n_digits = shift || 3;
       my $max = 10 ** $n_digits - 1 ; # $max is the maximum number
                                       # $n_digits long
       print "generating random number less than $max for $n_digits\n";
       return int(rand($max));
     }
 
-sub generate_varchar
+    sub generate_varchar
       {
 	my $type = shift;
 	my $n_char = shift || 30;
-	my @ranchar = rand_chars(set => "alphanumeric",size =>$n_char);
-	my $val = join "",@ranchar ;
-	my $x = '"'.$val.'"';
-	return $x;
+
+	# the set "alphanumeric" contains a maximum og 62 characters.
+	# If we pass the size parameter more than 62, we get a "size
+	# value exceeds set size at /Library/Perl/5.8.8/Data/Random.pm
+	# line 206" error
+	if ($n_char<62) {
+	  my @ranchar = rand_chars(set => "alphanumeric",size =>$n_char);
+	  my $val = join "",@ranchar ;
+	  my $x = '"'.$val.'"';
+	  return $x;
+	}
+	else {
+	  my $txt = generate_text("text",$n_char);
+	  my $chars = substr $txt,0,$n_char;
+	  my $quoted_chars = $chars.'"';
+	  return $quoted_chars;
+	}
       }
 
-sub generate_datetime
+      sub generate_datetime
 	{
 	  my $type = shift;
 	  my $randdatetime = rand_datetime(max => "now", min => '1978-9-21 00:00:00');
 	  my $x = '"'. $randdatetime .'"';
 	  return $x;
 	}
+	
+
+	sub generate_text
+	  {
+	    my $type = shift;
+	    my $n_words = shift || 100;
+	    my @randwords = rand_words (size => $n_words);
+	    my $val = join " ",@randwords;
+	    my $x = '"'. $val .'"';
+	    return $x;
+	 }   
+
+
