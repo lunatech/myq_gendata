@@ -8,7 +8,8 @@ use DBIx::DWIW;
 
 sub get_data_for_field;
 
-my ($database,$table,$outfile,$count) = ("test","jos_plugins","/tmp/ins.sql",3);
+my ($database,$table,$outfile,$count) = 
+  ("test","jos_plugins","/tmp/ins.sql",700);
 my $db = DBIx::DWIW->Connect(DB => $database,
 			     User => 'root',
 			     Host => undef,
@@ -28,13 +29,14 @@ my @records = $db->Hashes("desc $table");
 my $insert_sql = "INSERT IGNORE INTO $table VALUES";    
 for (my $i=0;$i<$count;$i++)
   {
+    print "Generating rec # $i\n";
     $insert_sql .= "(";
     foreach my $rec (@records) {
       my $val = get_data_for_field($rec->{Type});
       $insert_sql .= "$val,";
     }
     $insert_sql =~ s/,$//g;
-    $insert_sql .= "),\n";
+    $insert_sql .= "),";
   }
 
 $insert_sql =~ s/,$//g;
@@ -66,11 +68,15 @@ sub get_data_for_field
   sub generate_int
     {
       my $type = shift;
-      my $n_digits = shift || 3;
-      my $max = 10 ** $n_digits - 1 ; # $max is the maximum number
-                                      # $n_digits long
-      print "generating random number less than $max for $n_digits\n";
-      return int(rand($max));
+      my $max = {
+		 "int" => 2147483647,
+		 "tinyint" => 125,
+		 "smallint" => 32767,
+		 "mediumint" => 8388607,
+		 "bigint" => 9223372036854775807		 
+		};
+      
+      return int(rand($max->{$type}));
     }
 
     sub generate_varchar
